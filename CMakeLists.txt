@@ -121,13 +121,11 @@ else(WIN32)
 
 endif(WIN32)
 
-if(UNIX)
-    find_package(spdlog)
-    if(spdlog_FOUND)
-        message(STATUS "Found spdlog")
-        set(ADDITIONAL_PUBLIC_COMPILE_OPTIONS -DHAVE_SYSTEM_SPDLOG)
-        set(ADDITIONAL_LINK_LIBRARIES ${ADDITIONAL_LINK_LIBRARIES} spdlog::spdlog)
-    endif()
+find_package(spdlog)
+if(spdlog_FOUND)
+    message(STATUS "Found spdlog")
+    set(ADDITIONAL_PUBLIC_COMPILE_OPTIONS -DHAVE_SYSTEM_SPDLOG)
+    set(ADDITIONAL_LINK_LIBRARIES ${ADDITIONAL_LINK_LIBRARIES} spdlog::spdlog)
 endif()
 
 find_package( Boost COMPONENTS system program_options filesystem thread REQUIRED )
