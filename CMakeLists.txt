@@ -298,7 +298,7 @@ endif ()
 
 target_compile_options(opcuacore PUBLIC ${ADDITIONAL_PUBLIC_COMPILE_OPTIONS})
 target_link_libraries(opcuacore ${ADDITIONAL_LINK_LIBRARIES} opcuaprotocol ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY})
-target_include_directories(opcuacore PUBLIC $<INSTALL_INTERFACE:include>)
+target_include_directories(opcuacore PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 install(TARGETS opcuacore EXPORT FreeOpcUa
                           LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
                           ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/static)
