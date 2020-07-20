@@ -121,7 +121,12 @@ else(WIN32)
 
 endif(WIN32)
 
-find_package(spdlog)
+# Weird workaround for parent projects which have spdlog, but not as a
+# package.
+if(NOT spdlog_FOUND)
+    find_package(spdlog)
+endif()
+
 if(spdlog_FOUND)
     message(STATUS "Found spdlog")
     set(ADDITIONAL_PUBLIC_COMPILE_OPTIONS -DHAVE_SYSTEM_SPDLOG)
