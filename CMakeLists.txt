@@ -20,24 +20,6 @@ IF (NOT DEFINED CMAKE_INSTALL_LIBDIR)
     SET(CMAKE_INSTALL_LIBDIR lib)
 ENDIF ()
 
-SET (CMAKE_LIBRARY_OUTPUT_DIRECTORY
-        ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}
-        CACHE PATH
-        ""
-    )
-
-SET (CMAKE_RUNTIME_OUTPUT_DIRECTORY
-        ${PROJECT_BINARY_DIR}/bin
-        CACHE PATH
-        ""
-    )
-
-SET (CMAKE_ARCHIVE_OUTPUT_DIRECTORY
-        ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}
-        CACHE PATH
-        ""
-    )
-
 set(ADDITIONAL_PUBLIC_COMPILE_OPTIONS)
 
 # Helper function to generate a pkg-config file for a single library
