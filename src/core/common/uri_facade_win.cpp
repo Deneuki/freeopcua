@@ -19,9 +19,9 @@
 namespace Common
 {
 
-void Uri::Initialize(const char * uriString, std::size_t size)
+void Uri::Initialize(const std::string & uriString)
 {
-  URL_COMPONENTS url = {0};
+  URL_COMPONENTSA url = {0};
   url.dwStructSize = sizeof(url);
   url.dwSchemeLength = 1;
   url.dwUserNameLength = 1;
@@ -31,7 +31,7 @@ void Uri::Initialize(const char * uriString, std::size_t size)
 
   // TODO msdn says do not use this function in services and in server patforms. :(
   // TODO http://msdn.microsoft.com/en-us/library/windows/desktop/aa384376(v=vs.85).aspx
-  if (!InternetCrackUrl(uriString, size, options, &url))
+  if (!InternetCrackUrlA(uriString.c_str(), uriString.length(), options, &url))
     {
       THROW_ERROR1(CannotParseUri, uriString);
     }
