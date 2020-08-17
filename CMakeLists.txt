@@ -10,6 +10,9 @@ project(freeopcua)
 option(BUILD_CLIENT "Build Client" ON)
 option(BUILD_SERVER "Build Server" ON)
 
+option(BUILD_CLIENT_EXECUTABLE "Build Client EXE" OFF)
+option(BUILD_SERVER_EXECUTABLE "Build Server EXE" OFF)
+
 option(SSL_SUPPORT_MBEDTLS "Support rsa-oaep password encryption using mbedtls library " ON)
 
 option(BUILD_PYTHON "Build Python bindings" ON)
@@ -21,6 +24,8 @@ IF (NOT DEFINED CMAKE_INSTALL_LIBDIR)
 ENDIF ()
 
 set(ADDITIONAL_PUBLIC_COMPILE_OPTIONS)
+
+add_compile_definitions(BOOST_NO_CXX14_CONSTEXPR)
 
 # Helper function to generate a pkg-config file for a single library
 # Takes the filename of the .pc file as a parameter and replaces all
@@ -56,6 +61,7 @@ if(MSVC)
 
     add_definitions(/D_SCL_SECURE_NO_WARNINGS /D_CRT_SECURE_NO_WARNINGS /D_WIN32 /D_WINDOWS /FS /D_WIN32_WINNT=0x0600)
     add_compile_options(/Zi /Od /EHsc /W4)
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 else(MSVC)
     set(CMAKE_CXX_FLAGS_DEBUG " -Wall -ggdb -O0 ${CMAKE_CXX_FLAGS_DEBUG}")
 
@@ -117,7 +123,7 @@ endif()
 
 # Another weird workaround to hack in the Boost dependency.
 if(NOT Boost_FOUND)
-    find_package(Boost COMPONENTS system program_options filesystem thread REQUIRED)
+    find_package(Boost COMPONENTS system program_options filesystem thread date_time REQUIRED)
     include_directories(${Boost_INCLUDE_DIRS})
     link_directories(${Boost_LIBRARY_DIRS})
     message(STATUS "Boost INCLUDE DIR IS: " ${Boost_INCLUDE_DIRS})
@@ -207,8 +213,9 @@ target_compile_options(opcuaprotocol PUBLIC ${ADDITIONAL_PUBLIC_COMPILE_OPTIONS}
 target_link_libraries(opcuaprotocol ${ADDITIONAL_LINK_LIBRARIES})
 target_include_directories(opcuaprotocol PUBLIC $<INSTALL_INTERFACE:include>)
 install(TARGETS opcuaprotocol EXPORT FreeOpcUa
+                              RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
                               LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-                              ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/static)
+                              ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 generate_pkgconfig(opcuaprotocol)
 
@@ -287,11 +294,12 @@ if (NOT CMAKE_VERSION VERSION_LESS 2.8.12)
 endif ()
 
 target_compile_options(opcuacore PUBLIC ${ADDITIONAL_PUBLIC_COMPILE_OPTIONS})
-target_link_libraries(opcuacore ${ADDITIONAL_LINK_LIBRARIES} opcuaprotocol ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY})
+target_link_libraries(opcuacore ${ADDITIONAL_LINK_LIBRARIES} opcuaprotocol ${Boost_LIBRARIES})
 target_include_directories(opcuacore PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 install(TARGETS opcuacore EXPORT FreeOpcUa
+                          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
                           LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-                          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/static)
+                          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 generate_pkgconfig(opcuacore)
 
@@ -358,8 +366,9 @@ if (BUILD_CLIENT)
 
     target_include_directories(opcuaclient PUBLIC $<INSTALL_INTERFACE:include>)
     install(TARGETS opcuaclient EXPORT FreeOpcUa
+                                RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
                                 LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-                                ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/static)
+                                ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
     generate_pkgconfig(opcuaclient)
 
@@ -376,25 +385,27 @@ if (BUILD_CLIENT)
     # command line client
     ############################################################################
 
-    add_executable(opcuaclientapp
-    src/clientapp/opcua_main.cpp
-    src/clientapp/opcua_options.cpp
-    src/clientapp/opcua_options_attribute_ids.h
-    src/clientapp/opcua_options.h
-    )
+    if(BUILD_CLIENT_EXECUTABLE)
+        add_executable(opcuaclientapp
+        src/clientapp/opcua_main.cpp
+        src/clientapp/opcua_options.cpp
+        src/clientapp/opcua_options_attribute_ids.h
+        src/clientapp/opcua_options.h
+        )
 
 
-    target_compile_options(opcuaclientapp PUBLIC ${ADDITIONAL_PUBLIC_COMPILE_OPTIONS})
-    target_link_libraries(opcuaclientapp
-        ${ADDITIONAL_LINK_LIBRARIES}
-        ${Boost_PROGRAM_OPTIONS_LIBRARY}
-        opcuaprotocol
-        opcuacore
-    )
+        target_compile_options(opcuaclientapp PUBLIC ${ADDITIONAL_PUBLIC_COMPILE_OPTIONS})
+        target_link_libraries(opcuaclientapp
+            ${ADDITIONAL_LINK_LIBRARIES}
+            ${Boost_PROGRAM_OPTIONS_LIBRARY}
+            opcuaprotocol
+            opcuacore
+        )
 
-    if (NOT CMAKE_VERSION VERSION_LESS 2.8.12)
-        target_compile_options(opcuaclient PUBLIC ${EXECUTABLE_CXX_FLAGS})
-    endif ()
+        if (NOT CMAKE_VERSION VERSION_LESS 2.8.12)
+            target_compile_options(opcuaclient PUBLIC ${EXECUTABLE_CXX_FLAGS})
+        endif ()
+    endif()
 endif(BUILD_CLIENT)
 
 
@@ -448,11 +459,12 @@ if(BUILD_SERVER)
         target_compile_options(opcuaserver PUBLIC ${STATIC_LIBRARY_CXX_FLAGS})
     endif ()
     target_compile_options(opcuaserver PUBLIC ${ADDITIONAL_PUBLIC_COMPILE_OPTIONS})
-    target_link_libraries(opcuaserver ${ADDITIONAL_LINK_LIBRARIES} opcuacore opcuaprotocol ${Boost_SYSTEM_LIBRARY})
+    target_link_libraries(opcuaserver ${ADDITIONAL_LINK_LIBRARIES} opcuacore opcuaprotocol ${Boost_LIBRARIES})
     target_include_directories(opcuaserver PUBLIC $<INSTALL_INTERFACE:include>)
     install(TARGETS opcuaserver EXPORT FreeOpcUa
+                                RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
                                 LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-                                ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/static)
+                                ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
     generate_pkgconfig(opcuaserver)
 
@@ -516,28 +528,30 @@ if(BUILD_SERVER)
 # opcua server executable
 ############################################################################
 
-    SET(OPCUASERVERAPP_SOURCES
-        src/serverapp/daemon.cpp
-        src/serverapp/daemon${OS_SUFFIX}.cpp
-        src/serverapp/daemon.h
-        src/serverapp/server_main.cpp
-        src/serverapp/server_options.cpp
-        src/serverapp/server_options.h
-    )
-
-    add_executable(opcuaserverapp ${OPCUASERVERAPP_SOURCES})
-    target_compile_options(opcuaserverapp PUBLIC ${ADDITIONAL_PUBLIC_COMPILE_OPTIONS})
-    target_link_libraries(opcuaserverapp
-        ${ADDITIONAL_LINK_LIBRARIES}
-        opcuaprotocol
-        opcuacore
-        opcuaserver
-        ${Boost_PROGRAM_OPTIONS_LIBRARY}
-        ${SSL_SUPPORT_LINK_LIBRARIES}
+    if(BUILD_SERVER_EXECUTABLE)
+        SET(OPCUASERVERAPP_SOURCES
+            src/serverapp/daemon.cpp
+            src/serverapp/daemon${OS_SUFFIX}.cpp
+            src/serverapp/daemon.h
+            src/serverapp/server_main.cpp
+            src/serverapp/server_options.cpp
+            src/serverapp/server_options.h
         )
-    if (NOT CMAKE_VERSION VERSION_LESS 2.8.12)
-        target_compile_options(opcuaserverapp PUBLIC ${EXECUTABLE_CXX_FLAGS})
-    endif ()
+
+        add_executable(opcuaserverapp ${OPCUASERVERAPP_SOURCES})
+        target_compile_options(opcuaserverapp PUBLIC ${ADDITIONAL_PUBLIC_COMPILE_OPTIONS})
+        target_link_libraries(opcuaserverapp
+            ${ADDITIONAL_LINK_LIBRARIES}
+            opcuaprotocol
+            opcuacore
+            opcuaserver
+            ${Boost_PROGRAM_OPTIONS_LIBRARY}
+            ${SSL_SUPPORT_LINK_LIBRARIES}
+            )
+        if (NOT CMAKE_VERSION VERSION_LESS 2.8.12)
+            target_compile_options(opcuaserverapp PUBLIC ${EXECUTABLE_CXX_FLAGS})
+        endif ()
+    endif()
 
 endif(BUILD_SERVER)
 
@@ -545,7 +559,7 @@ endif(BUILD_SERVER)
 # example opcua client
 ############################################################################
 
-if (BUILD_CLIENT)
+if (BUILD_CLIENT_EXECUTABLE)
     add_executable(example_client
     src/examples/example_client.cpp
     )
@@ -563,13 +577,13 @@ if (BUILD_CLIENT)
         target_compile_options(example_client PUBLIC ${EXECUTABLE_CXX_FLAGS})
     endif ()
 
-endif (BUILD_CLIENT)
+endif (BUILD_CLIENT_EXECUTABLE)
 
 ############################################################################
 # example embedded opcua server
 ############################################################################
 
-if(BUILD_SERVER)
+if(BUILD_SERVER_EXECUTABLE)
     add_executable(example_server
     src/examples/example_server.cpp
     )
@@ -590,7 +604,7 @@ if(BUILD_SERVER)
         set_target_properties(example_server PROPERTIES LINK_FLAGS /STACK:3000000)
     endif(MSVC)
 
-endif(BUILD_SERVER)
+endif(BUILD_SERVER_EXECUTABLE)
 
 ############################################################################
 #python binding

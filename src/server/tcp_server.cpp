@@ -9,6 +9,7 @@
 ///
 
 #ifdef _WIN32
+#define _WINSOCKAPI_
 #include <windows.h>
 #endif
 
@@ -36,6 +37,7 @@
 
 
 #ifdef _WIN32
+#include <WinSock2.h>
 #else
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -178,7 +180,11 @@ public:
       {
         LOG_INFO(Logger, "shutting down opc ua binary server");
         Stopped = true;
+#ifdef _WIN32
+        shutdown(Socket, SD_BOTH);
+#else
         shutdown(Socket, SHUT_RDWR);
+#endif
         ServerThread->Join();
         ServerThread.reset();
       }
@@ -243,7 +249,7 @@ private:
 
     while (!Stopped)
       {
-        int clientSocket = accept(Socket, NULL, NULL);
+        int clientSocket = accept(static_cast<SOCKET>(Socket), static_cast<sockaddr*>(nullptr), NULL);
 
         if (Stopped)
           {
