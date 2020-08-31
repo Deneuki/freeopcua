@@ -53,6 +53,11 @@ using namespace OpcUa;
 using namespace OpcUa::Binary;
 using namespace OpcUa::Server;
 
+#ifdef _WIN32
+using SocketFileDescriptor = SOCKET;
+#else
+using SocketFileDescriptor = int;
+#endif
 
 class SocketHolder
 {
@@ -249,7 +254,7 @@ private:
 
     while (!Stopped)
       {
-        int clientSocket = accept(static_cast<SOCKET>(Socket), static_cast<sockaddr*>(nullptr), NULL);
+        int clientSocket = accept(static_cast<SocketFileDescriptor>(Socket), static_cast<sockaddr*>(nullptr), NULL);
 
         if (Stopped)
           {
