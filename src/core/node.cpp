@@ -253,43 +253,34 @@ Node Node::GetChild(const std::string & browsename) const
 
 Node Node::GetChild(const std::vector<std::string> & path) const
 {
-  std::vector<QualifiedName> vec;
-  uint16_t namespaceIdx = Id.GetNamespaceIndex();
-
-  for (std::string str : path)
-    {
-      QualifiedName qname = ToQualifiedName(str, namespaceIdx);
-      namespaceIdx = qname.NamespaceIndex;
-      vec.push_back(qname);
-    }
-
+  std::vector<QualifiedName> vec = _ToQualifiedName(path);
   return GetChild(vec);
 }
 
-
 Node Node::GetChild(const std::vector<QualifiedName> & path) const
 {
-  std::vector<RelativePathElement> rpath;
-
-  for (QualifiedName qname : path)
-    {
-      RelativePathElement el;
-      el.TargetName = qname;
-      rpath.push_back(el);
-    }
-
-  BrowsePath bpath;
-  bpath.Path.Elements = rpath;
-  bpath.StartingNode = Id;
-  std::vector<BrowsePath> bpaths;
-  bpaths.push_back(bpath);
-  TranslateBrowsePathsParameters params;
-  params.BrowsePaths = bpaths;
-
-  std::vector<BrowsePathResult> result = Server->Views()->TranslateBrowsePathsToNodeIds(params);
+  std::vector<BrowsePathResult> result = _TraversePath(path);
   CheckStatusCode(result.front().Status);
 
-  NodeId node = result.front().Targets.front().Node ;
+  NodeId node = result.front().Targets.front().Node;
+  return Node(Server, node);
+}
+
+Node Node::TryGetChild(const std::string & browsename) const
+{
+  return TryGetChild(std::vector<std::string>({browsename}));
+}
+
+Node Node::TryGetChild(const std::vector<std::string> & path) const
+{
+  std::vector<QualifiedName> vec = _ToQualifiedName(path);
+  return TryGetChild(vec);
+}
+
+Node Node::TryGetChild(const std::vector<QualifiedName> & path) const
+{
+  std::vector<BrowsePathResult> result = _TraversePath(path);
+  NodeId node = result.front().Status == StatusCode::Good ? result.front().Targets.front().Node : NodeId();
   return Node(Server, node);
 }
 
@@ -543,7 +534,42 @@ Node Node::AddMethod(const NodeId & nodeid, const QualifiedName & browsename, st
   return Node(Server, res.AddedNodeId);
 }
 
+std::vector<QualifiedName> Node::_ToQualifiedName(const std::vector<std::string> & path) const
+{
+  std::vector<QualifiedName> vec;
+  uint16_t namespaceIdx = Id.GetNamespaceIndex();
 
+  for (std::string str : path)
+    {
+      QualifiedName qname = ToQualifiedName(str, namespaceIdx);
+      namespaceIdx = qname.NamespaceIndex;
+      vec.push_back(qname);
+    }
+
+  return vec;
+}
+
+std::vector<BrowsePathResult> Node::_TraversePath(const std::vector<QualifiedName> & path) const
+{
+  std::vector<RelativePathElement> rpath;
+
+  for (QualifiedName qname : path)
+    {
+      RelativePathElement el;
+      el.TargetName = qname;
+      rpath.push_back(el);
+    }
+
+  BrowsePath bpath;
+  bpath.Path.Elements = rpath;
+  bpath.StartingNode = Id;
+  std::vector<BrowsePath> bpaths;
+  bpaths.push_back(bpath);
+  TranslateBrowsePathsParameters params;
+  params.BrowsePaths = bpaths;
+
+  return Server->Views()->TranslateBrowsePathsToNodeIds(params);
+}
 
 Variant Node::GetValue() const
 {

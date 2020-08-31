@@ -69,7 +69,11 @@ public:
   //the same as the parent
   Node GetChild(const std::vector<OpcUa::QualifiedName> & path) const;
   Node GetChild(const std::vector<std::string> & path) const;
-  Node GetChild(const std::string & browsename) const ;
+  Node GetChild(const std::string & browsename) const;
+
+  Node TryGetChild(const std::vector<OpcUa::QualifiedName> & path) const;
+  Node TryGetChild(const std::vector<std::string> & path) const;
+  Node TryGetChild(const std::string & browsename) const;
 
   //TODO: How to get References?
   std::vector<Node> GetProperties() const;
@@ -164,6 +168,10 @@ protected:
 protected:
   OpcUa::Services::SharedPtr Server;
   NodeId Id;
+
+private:
+  std::vector<QualifiedName> _ToQualifiedName(const std::vector<std::string> & path) const;
+  std::vector<BrowsePathResult> _TraversePath(const std::vector<QualifiedName> & path) const;
 };
 
 
